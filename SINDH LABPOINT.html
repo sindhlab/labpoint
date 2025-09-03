@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sindh Lab Point - Management System (Updated)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --secondary: #3498db;
+      --accent: #e74c3c;
+      --light: #ecf0f1;
+      --dark: #2c3e50;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+
+    .sidebar {
+      background-color: var(--primary);
+      color: white;
+      height: 100vh;
+      position: fixed;
+      padding-top: 20px;
+      overflow-y: auto;
+    }
+
+    .sidebar a {
+      color: white;
+      padding: 15px 20px;
+      text-decoration: none;
+      display: block;
+      transition: all 0.3s;
+    }
+
+    .sidebar a:hover {
+      background-color: var(--secondary);
+    }
+
+    .sidebar a.active {
+      background-color: var(--secondary);
+      border-left: 4px solid var(--accent);
+    }
+
+    .main-content {
+      margin-left: 250px;
+      padding: 20px;
+    }
+
+    .card {
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      border: none;
+    }
+
+    .card-header {
+      background-color: var(--primary);
+      color: white;
+      border-radius: 10px 10px 0 0 !important;
+    }
+
+    .btn-primary {
+      background-color: var(--secondary);
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background-color: #2980b9;
+    }
+
+    .btn-danger {
+      background-color: var(--accent);
+      border: none;
+    }
+
+    .table th {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .logo {
+      text-align: center;
+      padding: 20px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      margin-bottom: 20px;
+    }
+
+    .stats-box {
+      text-align: center;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      color: white;
+    }
+
+    .stats-box.primary { background-color: var(--primary); }
+    .stats-box.success { background-color: #27ae60; }
+    .stats-box.warning { background-color: #f39c12; }
+    .stats-box.danger { background-color: var(--accent); }
+    .stats-box i { font-size: 24px; margin-bottom: 10px; }
+    .stats-box h4 { font-size: 24px; margin: 0; }
+    .stats-box p { margin: 0; opacity: 0.8; }
+
+    /* Print styles for invoices/statements */
+    @media print {
+      body * { visibility: hidden; }
+      .print-area, .print-area * { visibility: visible; }
+      .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+
+    .invoice-copy {
+      border: 1px dashed #999;
+      padding: 16px;
+      margin-bottom: 24px;
+      background: #fff;
+    }
+
+    .signature-line {
+      display: flex; justify-content: space-between; gap: 24px; margin-top: 24px;
+    }
+    .signature-line div { flex: 1; text-align: center; }
+    .signature-line .line { border-top: 1px solid #444; padding-top: 6px; margin-top: 32px; }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 sidebar d-none d-md-block">
+        <div class="logo">
+          <h3><i class="fas fa-stethoscope"></i> Sindh Lab Point</h3>
+          <p>Surgical Shop Management</p>
+        </div>
+        <a href="#" class="active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        <a href="#" data-page="stock-management"><i class="fas fa-boxes"></i> Stock Management</a>
+        <a href="#" data-page="add-stock"><i class="fas fa-cart-plus"></i> Add Stock</a>
+        <a href="#" data-page="sale-management"><i class="fas fa-chart-line"></i> Sale Management</a>
+        <a href="#" data-page="invoice"><i class="fas fa-receipt"></i> Create Invoice</a>
+        <a href="#" data-page="accounts"><i class="fas fa-file-invoice-dollar"></i> Accounts (Sake)</a>
+        <a href="#" data-page="customers"><i class="fas fa-user-plus"></i> Customers</a>
+        <a href="#" data-page="profit-loss"><i class="fas fa-calculator"></i> Profit & Loss</a>
+        <a href="#" id="backup-btn"><i class="fas fa-database"></i> Backup Data</a>
+      </div>
+
+      <!-- Main Content -->
+      <div class="col-md-10 main-content">
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page active">
+          <h2 class="mb-4">Dashboard</h2>
+          <div class="row">
+            <div class="col-md-3">
+              <div class="stats-box primary">
+                <i class="fas fa-boxes"></i>
+                <h4 id="total-stock-items">0</h4>
+                <p>Total Stock Items</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stats-box success">
+                <i class="fas fa-shopping-cart"></i>
+                <h4 id="total-sales">0</h4>
+                <p>Total Sales</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <!-- Removed Profit Calculator section; only showing computed total profit value -->
+              <div class="stats-box warning">
+                <i class="fas fa-hand-holding-usd"></i>
+                <h4 id="total-profit">0 PKR</h4>
+                <p>Total Profit</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stats-box danger">
+                <i class="fas fa-truck"></i>
+                <h4 id="total-suppliers">0</h4>
+                <p>Total Suppliers</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header"><h5 class="mb-0">Low Stock Alert</h5></div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Current Stock</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="low-stock-table"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header"><h5 class="mb-0">Recent Sales</h5></div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>Invoice #</th>
+                          <th>Customer</th>
+                          <th>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody id="recent-sales-table"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stock Management Page -->
+        <div id="stock-management" class="page">
+          <h2 class="mb-4">Stock Management</h2>
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">Current Stock</h5>
+              <div class="d-flex">
+                <input type="text" id="stock-search" class="form-control me-2" placeholder="Search products..." />
+                <button class="btn btn-light" onclick="sortStock()">Sort A-Z</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Product ID</th>
+                      <th>Product Name</th>
+                      <th>Company</th>
+                      <th>Quantity</th>
+                      <th>Purchase Price</th>
+                      <th>Sale Price</th>
+                    </tr>
+                  </thead>
+                  <tbody id="stock-table"></tbody>
+                </table>
+                <div class="text-muted small">Delete option removed as requested.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Stock Page -->
+        <div id="add-stock" class="page">
+          <h2 class="mb-4">Add Stock</h2>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header"><h5 class="mb-0">Add New Stock</h5></div>
+                <div class="card-body">
+                  <form id="add-stock-form">
+                    <div class="mb-3">
+                      <label class="form-label">Select Company</label>
+                      <select class="form-select" id="company-select" required>
+                        <option value="">Select Company</option>
+                      </select>
+                      <div class="form-text">Can't find the company? <a href="#" id="add-company-link">Add new company</a></div>
+                    </div>
+                    <div class="mb-3" id="new-company-field" style="display: none;">
+                      <label class="form-label">New Company Name</label>
+                      <input type="text" class="form-control" id="new-company" />
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Product Name</label>
+                      <input type="text" class="form-control" id="product-name" required />
+                    </div>
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">Purchase Price (PKR)</label>
+                          <input type="number" class="form-control" id="purchase-price" required min="0" step="0.01" />
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">Sale Price (PKR)</label>
+                          <input type="number" class="form-control" id="sale-price" required min="0" step="0.01" />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Quantity</label>
+                      <input type="number" class="form-control" id="quantity" required min="1" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Stock</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header"><h5 class="mb-0">Recent Stock Added</h5></div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Company</th>
+                          <th>Qty</th>
+                          <th>Date</th>
+                        </tr>
+                      </thead>
+                      <tbody id="recent-stock-table"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sale Management Page -->
+        <div id="sale-management" class="page">
+          <h2 class="mb-4">Sale Management</h2>
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">Sales History</h5>
+              <div class="d-flex">
+                <input type="date" id="start-date" class="form-control me-2" />
+                <input type="date" id="end-date" class="form-control me-2" />
+                <button class="btn btn-primary me-2" onclick="filterSales()">Filter</button>
+                <button class="btn btn-success" onclick="printSales()"><i class="fas fa-print"></i> Print</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Invoice #</th>
+                      <th>Date/Time</th>
+                      <th>Customer</th>
+                      <th>Items</th>
+                      <th>Total Amount</th>
+                      <th>Profit</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sales-table"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create Invoice Page -->
+        <div id="invoice" class="page">
+          <h2 class="mb-4">Create Invoice</h2>
+          <div class="row">
+            <div class="col-md-8">
+              <div class="card">
+                <div class="card-header"><h5 class="mb-0">Invoice Details</h5></div>
+                <div class="card-body">
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Select Customer</label>
+                      <select class="form-select" id="customer-select">
+                        <option value="">Select Customer</option>
+                      </select>
+                      <div class="form-text">Need a new customer? Go to <a href="#" data-page-jump="customers">Customers</a> page.</div>
+                    </div>
+                  </div>
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Select Product</label>
+                      <select class="form-select" id="product-select">
+                        <option value="">Select Product</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Quantity</label>
+                      <input type="number" class="form-control" id="sale-quantity" min="1" value="1" />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">&nbsp;</label>
+                      <button class="btn btn-primary w-100" onclick="addToInvoice()">Add Item</button>
+                    </div>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Price</th>
+                          <th>Quantity</th>
+                          <th>Total</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="invoice-items"></tbody>
+                      <tfoot>
+                        <tr>
+                          <th colspan="3" class="text-end">Total:</th>
+                          <th id="invoice-total">0.00 PKR</th>
+                          <th></th>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  <div class="d-flex justify-content-end">
+                    <button class="btn btn-success me-2" onclick="processSale()">Process Sale</button>
+                    <button class="btn btn-secondary" onclick="clearInvoice()">Clear</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-header"><h5 class="mb-0">Recent Invoices</h5></div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>Invoice #</th>
+                          <th>Date</th>
+                          <th>Amount</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="recent-invoices-table"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accounts (Sake) Page -->
+        <div id="accounts" class="page">
+          <h2 class="mb-4">Accounts (Sake) Management</h2>
+          <div class="card">
+            <div class="card-header d-flex flex-wrap gap-2 align-items-center">
+              <h5 class="mb-0">Monthly Party Report</h5>
+              <div class="ms-auto d-flex gap-2">
+                <select class="form-select" id="accounts-month"></select>
+                <select class="form-select" id="accounts-year"></select>
+                <select class="form-select" id="accounts-customer"></select>
+                <button class="btn btn-primary" onclick="loadAccounts()">Load</button>
+                <button class="btn btn-success" onclick="printMonthlyStatement()"><i class="fas fa-print"></i> Print Monthly</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Buyer</th>
+                      <th>Purchases (PKR)</th>
+                      <th>Paid (PKR)</th>
+                      <th>Unpaid (PKR)</th>
+                      <th>Payments (dates & amounts)</th>
+                      <th>Add Payment</th>
+                    </tr>
+                  </thead>
+                  <tbody id="accounts-table"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div id="accounts-print" class="print-area" style="display:none;"></div>
+        </div>
+
+        <!-- Customers Page -->
+        <div id="customers" class="page">
+          <h2 class="mb-4">Customers</h2>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header"><h5 class="mb-0">Add New Customer</h5></div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label class="form-label">Customer Name</label>
+                    <input type="text" id="new-customer-input" class="form-control" placeholder="e.g., City Lab" />
+                  </div>
+                  <button class="btn btn-primary" onclick="addCustomer()">Add Customer</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header"><h5 class="mb-0">All Customers</h5></div>
+                <div class="card-body">
+                  <ul id="customer-list" class="list-group"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profit & Loss Page -->
+        <div id="profit-loss" class="page">
+          <h2 class="mb-4">Profit & Loss Statement</h2>
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">Financial Overview</h5>
+              <div class="d-flex">
+                <select class="form-select me-2" id="report-period" onchange="calculateProfitLoss()">
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month" selected>This Month</option>
+                  <option value="year">This Year</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+                <div id="custom-range" style="display: none;">
+                  <input type="date" id="profit-start-date" class="form-control me-2" />
+                  <input type="date" id="profit-end-date" class="form-control me-2" />
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row mb-4">
+                <div class="col-md-3">
+                  <div class="stats-box primary">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <h4 id="total-revenue">0 PKR</h4>
+                    <p>Total Revenue</p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="stats-box danger">
+                    <i class="fas fa-shopping-cart"></i>
+                    <h4 id="total-cost">0 PKR</h4>
+                    <p>Total Cost</p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="stats-box success">
+                    <i class="fas fa-chart-line"></i>
+                    <h4 id="net-profit">0 PKR</h4>
+                    <p>Net Profit</p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="stats-box warning">
+                    <i class="fas fa-percentage"></i>
+                    <h4 id="profit-margin">0%</h4>
+                    <p>Profit Margin</p>
+                  </div>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Invoice #</th>
+                      <th>Product</th>
+                      <th>Qty</th>
+                      <th>Revenue</th>
+                      <th>Cost</th>
+                      <th>Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody id="profit-loss-table"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ===== Data storage =====
+    let stock = JSON.parse(localStorage.getItem('stock')) || [];
+    let sales = JSON.parse(localStorage.getItem('sales')) || [];
+    let companies = JSON.parse(localStorage.getItem('companies')) || ['Medtronic', 'Johnson & Johnson', 'Becton Dickinson'];
+    let customers = JSON.parse(localStorage.getItem('customers')) || ['City Lab', 'Central Diagnostic', 'Health Care Lab'];
+    let payments = JSON.parse(localStorage.getItem('payments')) || []; // {customer, amount, dateISO, month, year, note, invoiceId?}
+    let nextInvoiceId = parseInt(localStorage.getItem('nextInvoiceId')) || 1001;
+    let currentInvoiceItems = [];
+
+    // ===== Helpers =====
+    function fmtCurrency(n){ return (n||0).toFixed(2) + ' PKR'; }
+    function todayISO(){ return new Date().toISOString(); }
+    function monthName(n){ return new Date(2000, n, 1).toLocaleString(undefined,{month:'long'}); }
+
+    // ===== Initialize =====
+    document.addEventListener('DOMContentLoaded', function(){
+      initializeNavigation();
+      initMonthYearSelectors();
+      loadDashboard();
+      loadStockManagement();
+      loadAddStock();
+      loadSaleManagement();
+      loadInvoice();
+      loadCustomers();
+      loadAccountsSelectors();
+      calculateProfitLoss();
+
+      // Backup reminder
+      setInterval(backupData, 300000);
+    });
+
+    // ===== Navigation =====
+    function showPage(id){
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+    function initializeNavigation(){
+      const navLinks = document.querySelectorAll('.sidebar a[data-page]');
+      navLinks.forEach(link=>{
+        link.addEventListener('click',function(e){
+          e.preventDefault();
+          const target = this.getAttribute('data-page');
+          navLinks.forEach(l=>l.classList.remove('active'));
+          this.classList.add('active');
+          showPage(target);
+          if(target==='accounts') loadAccounts();
+        });
+      });
+      document.addEventListener('click', (e)=>{
+        const jump = e.target.closest('[data-page-jump]');
+        if(jump){
+          e.preventDefault();
+          const target = jump.getAttribute('data-page-jump');
+          document.querySelectorAll('.sidebar a[data-page]').forEach(a=>{
+            a.classList.toggle('active', a.getAttribute('data-page')===target);
+          });
+          showPage(target);
+        }
+      });
+      document.getElementById('backup-btn').addEventListener('click', function(e){ e.preventDefault(); backupData(); alert('Data backed up successfully!'); });
+      document.getElementById('add-company-link').addEventListener('click', function(e){ e.preventDefault(); document.getElementById('new-company-field').style.display='block'; });
+      document.getElementById('report-period').addEventListener('change', function(){
+        if(this.value==='custom'){ document.getElementById('custom-range').style.display='flex'; }
+        else { document.getElementById('custom-range').style.display='none'; calculateProfitLoss(); }
+      });
+    }
+
+    // ===== Dashboard =====
+    function loadDashboard(){
+      document.getElementById('total-stock-items').textContent = stock.length;
+      document.getElementById('total-sales').textContent = sales.length;
+      let totalProfit = 0; sales.forEach(s=> totalProfit += (s.netProfit||0));
+      document.getElementById('total-profit').textContent = fmtCurrency(totalProfit);
+      document.getElementById('total-suppliers').textContent = companies.length;
+
+      const lowStockTable = document.getElementById('low-stock-table');
+      lowStockTable.innerHTML='';
+      const lowStockItems = stock.filter(i=> i.quantity < 10);
+      if(lowStockItems.length===0){ lowStockTable.innerHTML = '<tr><td colspan="3" class="text-center">No low stock items</td></tr>'; }
+      else {
+        lowStockItems.forEach(item=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${item.name}</td><td>${item.quantity}</td><td><button class="btn btn-sm btn-primary" onclick="navigateToStock()">Restock</button></td>`;
+          lowStockTable.appendChild(tr);
+        });
+      }
+
+      const recentSalesTable = document.getElementById('recent-sales-table');
+      recentSalesTable.innerHTML='';
+      const recentSales = sales.slice(-5).reverse();
+      if(recentSales.length===0){ recentSalesTable.innerHTML = '<tr><td colspan="3" class="text-center">No recent sales</td></tr>'; }
+      else {
+        recentSales.forEach(s=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${s.invoiceId}</td><td>${s.customer}</td><td>${fmtCurrency(s.totalAmount)}</td>`;
+          recentSalesTable.appendChild(tr);
+        });
+      }
+    }
+    function navigateToStock(){
+      document.querySelector('.sidebar a[data-page="stock-management"]').click();
+    }
+
+    // ===== Stock Management =====
+    function loadStockManagement(){
+      const body = document.getElementById('stock-table');
+      body.innerHTML='';
+      if(stock.length===0){ body.innerHTML = '<tr><td colspan="6" class="text-center">No stock items available</td></tr>'; return; }
+      stock.forEach((item, idx)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${idx+100}</td><td>${item.name}</td><td>${item.company}</td><td>${item.quantity}</td><td>${item.purchasePrice.toFixed(2)} PKR</td><td>${item.salePrice.toFixed(2)} PKR</td>`;
+        body.appendChild(tr);
+      });
+    }
+    function sortStock(){ stock.sort((a,b)=> a.name.localeCompare(b.name)); localStorage.setItem('stock', JSON.stringify(stock)); loadStockManagement(); }
+
+    // ===== Add Stock =====
+    function loadAddStock(){
+      const companySelect = document.getElementById('company-select');
+      companySelect.innerHTML = '<option value="">Select Company</option>';
+      companies.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; companySelect.appendChild(o); });
+
+      const recentStockTable = document.getElementById('recent-stock-table');
+      recentStockTable.innerHTML='';
+      const recentStock = stock.slice(-5).reverse();
+      if(recentStock.length===0){ recentStockTable.innerHTML = '<tr><td colspan="4" class="text-center">No recent stock additions</td></tr>'; }
+      else {
+        recentStock.forEach(item=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${item.name}</td><td>${item.company}</td><td>${item.quantity}</td><td>${new Date().toLocaleDateString()}</td>`;
+          recentStockTable.appendChild(tr);
+        });
+      }
+
+      document.getElementById('add-stock-form').onsubmit = function(e){
+        e.preventDefault();
+        let company = document.getElementById('company-select').value;
+        const newCompany = document.getElementById('new-company').value.trim();
+        if(newCompany){ company = newCompany; if(!companies.includes(newCompany)){ companies.push(newCompany); localStorage.setItem('companies', JSON.stringify(companies)); } }
+        const productName = document.getElementById('product-name').value.trim();
+        const purchasePrice = parseFloat(document.getElementById('purchase-price').value);
+        const salePrice = parseFloat(document.getElementById('sale-price').value);
+        const quantity = parseInt(document.getElementById('quantity').value);
+
+        const idx = stock.findIndex(i=> i.name.toLowerCase()===productName.toLowerCase() && i.company.toLowerCase()===company.toLowerCase());
+        if(idx!==-1){ stock[idx].quantity += quantity; stock[idx].purchasePrice = purchasePrice; stock[idx].salePrice = salePrice; }
+        else { stock.push({ name: productName, company, quantity, purchasePrice, salePrice }); }
+        localStorage.setItem('stock', JSON.stringify(stock));
+        this.reset(); document.getElementById('new-company-field').style.display='none';
+        loadAddStock(); loadStockManagement(); loadDashboard(); loadInvoice();
+        alert('Stock added successfully!');
+      }
+    }
+
+    // ===== Sales Management =====
+    function loadSaleManagement(){
+      const body = document.getElementById('sales-table');
+      body.innerHTML='';
+      if(sales.length===0){ body.innerHTML = '<tr><td colspan="7" class="text-center">No sales records available</td></tr>'; return; }
+      sales.forEach(s=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${s.invoiceId}</td><td>${s.dateTime}</td><td>${s.customer}</td><td>${s.items.length} items</td><td>${fmtCurrency(s.totalAmount)}</td><td>${fmtCurrency(s.netProfit)}</td><td><button class='btn btn-sm btn-outline-secondary' onclick='printInvoice(${s.invoiceId})'><i class="fas fa-print"></i></button></td>`;
+        body.appendChild(tr);
+      });
+    }
+    function filterSales(){
+      const startDate = new Date(document.getElementById('start-date').value);
+      const endDate = new Date(document.getElementById('end-date').value);
+      if(isNaN(startDate) || isNaN(endDate)){ alert('Please select valid start and end dates'); return; }
+      const body = document.getElementById('sales-table');
+      body.innerHTML='';
+      const filtered = sales.filter(s=>{ const d=new Date(s.dateTime); return d>=startDate && d<=endDate; });
+      if(filtered.length===0){ body.innerHTML = '<tr><td colspan="7" class="text-center">No sales records found for the selected period</td></tr>'; return; }
+      filtered.forEach(s=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${s.invoiceId}</td><td>${s.dateTime}</td><td>${s.customer}</td><td>${s.items.length} items</td><td>${fmtCurrency(s.totalAmount)}</td><td>${fmtCurrency(s.netProfit)}</td><td><button class='btn btn-sm btn-outline-secondary' onclick='printInvoice(${s.invoiceId})'><i class="fas fa-print"></i></button></td>`;
+        body.appendChild(tr);
+      });
+    }
+    function printSales(){ window.print(); }
+
+    // ===== Invoice =====
+    function loadInvoice(){
+      const customerSelect = document.getElementById('customer-select');
+      customerSelect.innerHTML = '<option value="">Select Customer</option>';
+      customers.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; customerSelect.appendChild(o); });
+
+      const productSelect = document.getElementById('product-select');
+      productSelect.innerHTML = '<option value="">Select Product</option>';
+      stock.forEach(item=>{ if(item.quantity>0){ const o=document.createElement('option'); o.value=item.name; o.textContent=`${item.name} (${item.company}) - Stock: ${item.quantity}`; o.setAttribute('data-stock', item.quantity); o.setAttribute('data-price', item.salePrice); o.setAttribute('data-cost', item.purchasePrice); productSelect.appendChild(o);} });
+
+      const recent = document.getElementById('recent-invoices-table');
+      recent.innerHTML='';
+      const last = sales.slice(-5).reverse();
+      if(last.length===0){ recent.innerHTML = '<tr><td colspan="4" class="text-center">No recent invoices</td></tr>'; }
+      else {
+        last.forEach(inv=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${inv.invoiceId}</td><td>${new Date(inv.dateTime).toLocaleDateString()}</td><td>${fmtCurrency(inv.totalAmount)}</td><td><button class='btn btn-sm btn-outline-secondary' onclick='printInvoice(${inv.invoiceId})'><i class="fas fa-print"></i></button></td>`;
+          recent.appendChild(tr);
+        });
+      }
+
+      currentInvoiceItems = [];
+      updateInvoiceTable();
+    }
+    function addToInvoice(){
+      const sel = document.getElementById('product-select');
+      const opt = sel.options[sel.selectedIndex];
+      const productName = sel.value;
+      const quantity = parseInt(document.getElementById('sale-quantity').value);
+      if(!productName){ alert('Please select a product'); return; }
+      if(isNaN(quantity) || quantity<=0){ alert('Please enter a valid quantity'); return; }
+      const available = parseInt(opt.getAttribute('data-stock'));
+      if(quantity>available){ alert(`Only ${available} items available in stock`); return; }
+      const price = parseFloat(opt.getAttribute('data-price'));
+      const cost = parseFloat(opt.getAttribute('data-cost'));
+      const total = price * quantity;
+      const existing = currentInvoiceItems.findIndex(i=> i.name===productName);
+      if(existing!==-1){ currentInvoiceItems[existing].quantity += quantity; currentInvoiceItems[existing].total = currentInvoiceItems[existing].quantity * price; }
+      else { currentInvoiceItems.push({ name: productName, price, cost, quantity, total }); }
+      updateInvoiceTable();
+      sel.selectedIndex = 0; document.getElementById('sale-quantity').value = 1;
+    }
+    function updateInvoiceTable(){
+      const tbody = document.getElementById('invoice-items');
+      const totalEl = document.getElementById('invoice-total');
+      tbody.innerHTML='';
+      let total = 0;
+      if(currentInvoiceItems.length===0){ tbody.innerHTML = '<tr><td colspan="5" class="text-center">No items added to invoice</td></tr>'; }
+      else {
+        currentInvoiceItems.forEach((item, idx)=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${item.name}</td><td>${item.price.toFixed(2)} PKR</td><td>${item.quantity}</td><td>${item.total.toFixed(2)} PKR</td><td><button class='btn btn-sm btn-danger' onclick='removeInvoiceItem(${idx})'><i class="fas fa-times"></i></button></td>`;
+          tbody.appendChild(tr); total += item.total;
+        });
+      }
+      totalEl.textContent = total.toFixed(2) + ' PKR';
+    }
+    function removeInvoiceItem(idx){ currentInvoiceItems.splice(idx,1); updateInvoiceTable(); }
+    function clearInvoice(){ currentInvoiceItems=[]; updateInvoiceTable(); document.getElementById('customer-select').selectedIndex=0; }
+    function processSale(){
+      const customerSel = document.getElementById('customer-select');
+      let customer = customerSel.value;
+      if(!customer){ alert('Please select a customer from Customers page first'); return; }
+      if(currentInvoiceItems.length===0){ alert('Please add at least one item to the invoice'); return; }
+      let totalAmount=0, totalCost=0; const items=[];
+      currentInvoiceItems.forEach(item=>{
+        totalAmount += item.total;
+        totalCost += (item.cost * item.quantity);
+        items.push({ name:item.name, price:item.price, cost:item.cost, quantity:item.quantity, total:item.total });
+        const st = stock.find(s=> s.name===item.name);
+        if(st){ st.quantity -= item.quantity; }
+      });
+      const now = new Date();
+      const sale = {
+        invoiceId: nextInvoiceId,
+        dateTime: now.toLocaleString(),
+        dateISO: now.toISOString(),
+        customer: customer,
+        items: items,
+        totalAmount: totalAmount,
+        totalCost: totalCost,
+        netProfit: totalAmount - totalCost
+      };
+      sales.push(sale); nextInvoiceId++;
+      localStorage.setItem('sales', JSON.stringify(sales));
+      localStorage.setItem('stock', JSON.stringify(stock));
+      localStorage.setItem('nextInvoiceId', nextInvoiceId);
+
+      // Record initial unpaid (no payment yet)
+      // Payments are recorded via Accounts page; by default unpaid equals total in that month
+
+      backupData();
+      alert(`Sale processed successfully! Invoice #${sale.invoiceId}`);
+      clearInvoice(); loadDashboard(); loadStockManagement(); loadSaleManagement(); loadInvoice(); calculateProfitLoss();
+    }
+
+    // ===== Accounts (Sake) =====
+    function initMonthYearSelectors(){
+      const mSel = document.getElementById('accounts-month');
+      const ySel = document.getElementById('accounts-year');
+      if(!mSel || !ySel) return;
+      mSel.innerHTML=''; for(let m=0;m<12;m++){ const o=document.createElement('option'); o.value=m; o.textContent=monthName(m); if(m===new Date().getMonth()) o.selected=true; mSel.appendChild(o);}    
+      ySel.innerHTML=''; const thisYear=new Date().getFullYear(); for(let y=thisYear-5;y<=thisYear+1;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===thisYear) o.selected=true; ySel.appendChild(o);}  
+    }
+    function loadAccountsSelectors(){
+      const cSel = document.getElementById('accounts-customer');
+      cSel.innerHTML = '<option value="__all">All Buyers</option>';
+      customers.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cSel.appendChild(o); });
+    }
+    function loadAccounts(){
+      const month = parseInt(document.getElementById('accounts-month').value);
+      const year = parseInt(document.getElementById('accounts-year').value);
+      const custFilter = document.getElementById('accounts-customer').value;
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month+1, 0, 23,59,59);
+
+      const buyers = custFilter==='__all' ? customers : [custFilter];
+      const tbody = document.getElementById('accounts-table');
+      tbody.innerHTML='';
+
+      if(buyers.length===0){ tbody.innerHTML = '<tr><td colspan="6" class="text-center">No buyers</td></tr>'; return; }
+
+      buyers.forEach(buyer=>{
+        const monthSales = sales.filter(s=> s.customer===buyer && new Date(s.dateISO)>=start && new Date(s.dateISO)<=end);
+        const monthPayments = payments.filter(p=> p.customer===buyer && new Date(p.dateISO)>=start && new Date(p.dateISO)<=end);
+        const purchases = monthSales.reduce((sum,s)=> sum + s.totalAmount, 0);
+        const paid = monthPayments.reduce((sum,p)=> sum + p.amount, 0);
+        const unpaid = Math.max(0, purchases - paid);
+        const paymentsText = monthPayments.length? monthPayments.map(p=> `${new Date(p.dateISO).toLocaleDateString()}: ${fmtCurrency(p.amount)}`).join('<br/>') : '<span class="text-muted">No payments</span>';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${buyer}</td><td>${fmtCurrency(purchases)}</td><td>${fmtCurrency(paid)}</td><td>${fmtCurrency(unpaid)}</td><td>${paymentsText}</td><td><button class='btn btn-sm btn-primary' onclick='addPaymentPrompt("${buyer}", ${month}, ${year})'>Add Payment</button></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    function addPaymentPrompt(buyer, month, year){
+      const amountStr = prompt(`Enter amount paid by ${buyer} for ${monthName(month)} ${year}`);
+      if(amountStr===null) return; // cancelled
+      const amount = parseFloat(amountStr);
+      if(isNaN(amount) || amount<=0){ alert('Invalid amount'); return; }
+      const now = new Date();
+      payments.push({ customer: buyer, amount, dateISO: now.toISOString(), month, year, note: 'Manual payment' });
+      localStorage.setItem('payments', JSON.stringify(payments));
+      loadAccounts();
+      alert('Payment recorded');
+    }
+    function buildMonthlyStatementHTML(month, year){
+      const start = new Date(year, month, 1); const end = new Date(year, month+1, 0, 23,59,59);
+      const buyers = customers;
+      let html = '';
+      buyers.forEach(buyer=>{
+        const buyerSales = sales.filter(s=> s.customer===buyer && new Date(s.dateISO)>=start && new Date(s.dateISO)<=end);
+        const buyerPays = payments.filter(p=> p.customer===buyer && new Date(p.dateISO)>=start && new Date(p.dateISO)<=end);
+        const purchases = buyerSales.reduce((a,s)=> a+s.totalAmount, 0);
+        const paid = buyerPays.reduce((a,p)=> a+p.amount, 0);
+        const unpaid = Math.max(0, purchases-paid);
+        html += `
+          <div class="invoice-copy">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h4 class="mb-0">Monthly Statement</h4>
+                <div class="text-muted">${monthName(month)} ${year}</div>
+                <strong>Buyer:</strong> ${buyer}
+              </div>
+              <div class="text-end">
+                <strong>Sindh Lab Point</strong><br/>
+                Surgical Shop Management
+              </div>
+            </div>
+            <hr/>
+            <table class="table table-sm">
+              <thead><tr><th>Date</th><th>Invoice #</th><th>Items</th><th class="text-end">Amount</th></tr></thead>
+              <tbody>
+                ${buyerSales.map(s=> `<tr><td>${new Date(s.dateISO).toLocaleDateString()}</td><td>${s.invoiceId}</td><td>${s.items.length}</td><td class='text-end'>${fmtCurrency(s.totalAmount)}</td></tr>`).join('') || '<tr><td colspan="4" class="text-center text-muted">No purchases</td></tr>'}
+              </tbody>
+              <tfoot>
+                <tr><th colspan="3" class="text-end">Total Purchases</th><th class="text-end">${fmtCurrency(purchases)}</th></tr>
+                <tr><th colspan="3" class="text-end">Payments</th><th class="text-end">${fmtCurrency(paid)}</th></tr>
+                <tr><th colspan="3" class="text-end">Unpaid</th><th class="text-end">${fmtCurrency(unpaid)}</th></tr>
+              </tfoot>
+            </table>
+            <div><strong>Payments this month:</strong><br/>${buyerPays.map(p=> `${new Date(p.dateISO).toLocaleDateString()} — ${fmtCurrency(p.amount)}`).join('<br/>') || '<span class="text-muted">No payments</span>'}</div>
+            <div class="signature-line">
+              <div><div class="line">Supplier Name & Signature</div></div>
+              <div><div class="line">Receiver Name & Signature</div></div>
+            </div>
+          </div>
+          <div style="page-break-after: always;"></div>
+        `;
+      });
+      return html;
+    }
+    function printMonthlyStatement(){
+      const month = parseInt(document.getElementById('accounts-month').value);
+      const year = parseInt(document.getElementById('accounts-year').value);
+      const container = document.getElementById('accounts-print');
+      container.innerHTML = buildMonthlyStatementHTML(month, year);
+      container.style.display='block';
+      window.print();
+      container.style.display='none';
+    }
+
+    // ===== Customers =====
+    function loadCustomers(){
+      const list = document.getElementById('customer-list'); if(!list) return;
+      list.innerHTML='';
+      customers.forEach(c=>{ const li=document.createElement('li'); li.className='list-group-item d-flex justify-content-between align-items-center'; li.textContent=c; list.appendChild(li); });
+    }
+    function addCustomer(){
+      const input = document.getElementById('new-customer-input');
+      const name = (input.value||'').trim();
+      if(!name){ alert('Enter customer name'); return; }
+      if(customers.includes(name)){ alert('Customer already exists'); return; }
+      customers.push(name); localStorage.setItem('customers', JSON.stringify(customers)); input.value='';
+      loadCustomers(); loadInvoice(); loadAccountsSelectors();
+      alert('Customer added');
+    }
+
+    // ===== Profit & Loss =====
+    function calculateProfitLoss(){
+      const period = document.getElementById('report-period').value;
+      let startDate, endDate; const today = new Date();
+      switch(period){
+        case 'today': startDate = new Date(today); endDate = new Date(today); break;
+        case 'week': startDate = new Date(today); startDate.setDate(today.getDate()-today.getDay()); endDate = new Date(today); endDate.setDate(today.getDate()+(6-today.getDay())); break;
+        case 'month': startDate = new Date(today.getFullYear(), today.getMonth(), 1); endDate = new Date(today.getFullYear(), today.getMonth()+1, 0, 23,59,59); break;
+        case 'year': startDate = new Date(today.getFullYear(),0,1); endDate = new Date(today.getFullYear(),11,31,23,59,59); break;
+        case 'custom': startDate = new Date(document.getElementById('profit-start-date').value); endDate = new Date(document.getElementById('profit-end-date').value); if(isNaN(startDate)||isNaN(endDate)){ alert('Please select valid start and end dates'); return; } break;
+      }
+      const filtered = sales.filter(s=>{ const d=new Date(s.dateISO); return d>=startDate && d<=endDate; });
+      let totalRevenue=0, totalCost=0, netProfit=0;
+      const tbody = document.getElementById('profit-loss-table'); tbody.innerHTML='';
+      if(filtered.length===0){ tbody.innerHTML = '<tr><td colspan="7" class="text-center">No records</td></tr>'; }
+      else {
+        filtered.forEach(s=>{
+          s.items.forEach(it=>{
+            const revenue = it.total; const cost = it.cost * it.quantity; const profit = revenue - cost;
+            totalRevenue += revenue; totalCost += cost; netProfit += profit;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${new Date(s.dateISO).toLocaleDateString()}</td><td>${s.invoiceId}</td><td>${it.name}</td><td>${it.quantity}</td><td>${fmtCurrency(revenue)}</td><td>${fmtCurrency(cost)}</td><td>${fmtCurrency(profit)}</td>`;
+            tbody.appendChild(tr);
+          });
+        });
+      }
+      document.getElementById('total-revenue').textContent = fmtCurrency(totalRevenue);
+      document.getElementById('total-cost').textContent = fmtCurrency(totalCost);
+      document.getElementById('net-profit').textContent = fmtCurrency(netProfit);
+      const margin = totalRevenue>0 ? (netProfit/totalRevenue)*100 : 0;
+      document.getElementById('profit-margin').textContent = margin.toFixed(2)+'%';
+    }
+
+    // ===== Printing single invoice (two copies, signatures) =====
+    function printInvoice(invoiceId){
+      const inv = sales.find(s=> s.invoiceId===invoiceId);
+      if(!inv){ alert('Invoice not found'); return; }
+      const copyHTML = (label)=> `
+        <div class="invoice-copy">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h4 class="mb-0">Invoice #${inv.invoiceId} <span class="text-muted">(${label})</span></h4>
+              <div class="text-muted">Date/Time: ${inv.dateTime}</div>
+              <div><strong>Buyer:</strong> ${inv.customer}</div>
+            </div>
+            <div class="text-end">
+              <strong>Sindh Lab Point</strong><br/>Surgical Shop Management
+            </div>
+          </div>
+          <hr/>
+          <table class="table table-sm">
+            <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th class='text-end'>Total</th></tr></thead>
+            <tbody>
+              ${inv.items.map(it=> `<tr><td>${it.name}</td><td>${it.quantity}</td><td>${fmtCurrency(it.price)}</td><td class='text-end'>${fmtCurrency(it.total)}</td></tr>`).join('')}
+            </tbody>
+            <tfoot><tr><th colspan="3" class="text-end">Grand Total</th><th class='text-end'>${fmtCurrency(inv.totalAmount)}</th></tr></tfoot>
+          </table>
+          <div class="signature-line">
+            <div><div class="line">Supplier Name & Signature</div></div>
+            <div><div class="line">Receiver Name & Signature</div></div>
+          </div>
+        </div>`;
+      const html = `<div class='print-area'>${copyHTML('Buyer Copy')}${copyHTML('Shop Copy')}</div>`;
+      const w = window.open('', '_blank');
+      w.document.write(`<html><head><title>Invoice #${inv.invoiceId}</title><link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css' rel='stylesheet'><style>${document.querySelector('style').innerHTML}</style></head><body>${html}</body></html>`);
+      w.document.close(); w.focus(); w.print();
+    }
+
+    // ===== Backup =====
+    function backupData(){
+      const backup = { stock, sales, companies, customers, payments, nextInvoiceId, timestamp: new Date().toISOString() };
+      localStorage.setItem('backup', JSON.stringify(backup));
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backup));
+      const a = document.createElement('a'); a.setAttribute('href', dataStr); a.setAttribute('download', 'sindh_lab_point_backup_' + new Date().toISOString().slice(0,10) + '.json'); document.body.appendChild(a); a.click(); a.remove();
+    }
+  </script>
+</body>
+</html>
